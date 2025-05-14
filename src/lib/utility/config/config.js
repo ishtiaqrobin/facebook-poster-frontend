@@ -9,4 +9,6 @@ export const ENDPOINTS = {
 
     // User Profile & Dashboard
     user: `${API_BASE_URL}/user/`,
+    userProfile: `${API_BASE_URL}/facebook/profile/`,
+    userPages: `${API_BASE_URL}/facebook/pages/`,
 };

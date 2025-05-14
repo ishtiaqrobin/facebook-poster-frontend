@@ -18,7 +18,8 @@ export const UserProvider = ({ children }) => {
 
         if (token) {
             try {
-                const response = await fetch(ENDPOINTS.user, {
+                // Fetch user profile
+                const profileResponse = await fetch(ENDPOINTS.userProfile, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -26,18 +27,11 @@ export const UserProvider = ({ children }) => {
                     },
                 });
 
-                if (response.ok) {
-                    const data = await response.json();
-                    data.profileImage = profileImage;
-                    setUser(data);
-
-                    trackEvent({
-                        action: 'login_success',
-                        category: 'User',
-                        label: 'Login via Email',
-                    });
+                if (profileResponse.ok) {
+                    const profileData = await profileResponse.json();
+                    setUser(profileData);
                 } else {
-                    console.log("Error fetching user data.");
+                    console.log("Error fetching user profile.");
                     setUser(null);
                 }
             } catch (error) {
@@ -54,6 +48,43 @@ export const UserProvider = ({ children }) => {
     useEffect(() => {
         fetchUserData();
     }, []);
+
+    // Facebook login callback & token management (global)
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const urlParams = new URLSearchParams(window.location.search);
+        const accessToken = urlParams.get('access_token');
+        const refreshToken = urlParams.get('refresh_token');
+        const profileImage = urlParams.get('profile_image');
+        const redirectUrl = urlParams.get('redirect');
+        const error = urlParams.get('error');
+
+        if (error) {
+            // Optional: toast error if you use toast
+            // toast.error(`Facebook login failed: ${error}`);
+            return;
+        }
+
+        if (accessToken) {
+            try {
+                const decodedToken = JSON.parse(atob(accessToken.split(".")[1]));
+                const expirationTime = decodedToken.exp * 1000;
+                localStorage.setItem("token_expiration", expirationTime);
+                localStorage.setItem("access_token", accessToken);
+                if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
+                if (profileImage) localStorage.setItem("profile_image", profileImage);
+                document.cookie = `access_token=${accessToken}; path=/; Secure`;
+                if (refreshToken) document.cookie = `refresh_token=${refreshToken}; path=/; Secure`;
+                // Remove token from URL for security
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } catch (e) {
+                // Optional: toast.error('Invalid token received');
+            }
+        }
+        if (redirectUrl) {
+            localStorage.setItem("redirect_url", redirectUrl);
+        }
+    }, [router]);
 
     const handleFacebookLogin = async () => {
         try {
@@ -131,12 +162,6 @@ export const UserProvider = ({ children }) => {
             await fetchUserData();
 
             toast.success("Successfully logged in with Facebook!");
-
-            trackEvent({
-                action: 'login_success',
-                category: 'User',
-                label: 'Login via Facebook',
-            });
         } catch (error) {
             console.error("Error handling Facebook callback:", error);
             toast.error("Failed to complete Facebook login");
@@ -150,6 +175,8 @@ export const UserProvider = ({ children }) => {
         setUser(null);
         router.push("/");
     };
+
+    console.log(user, 'user data from user context');
 
     return (
         <UserContext.Provider

@@ -13,28 +13,6 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" data-theme="light">
-      <head>
-        <script
-          async
-          defer
-          crossOrigin="anonymous"
-          src="https://connect.facebook.net/en_US/sdk.js"
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.fbAsyncInit = function() {
-                FB.init({
-                  appId: 'YOUR_APP_ID',
-                  cookie: true,
-                  xfbml: true,
-                  version: 'v18.0'
-                });
-              };
-            `,
-          }}
-        />
-      </head>
       <body className={inter.className}>
         <Toaster reverseOrder={false} />
         <UserProvider>
